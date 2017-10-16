@@ -1,0 +1,133 @@
+---
+title: "使用中文测试"
+author:
+  - Heaven Zone
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+classoption: "hyperref,"
+geometry: "left=1.5cm,right=1.5cm,top=2cm,bottom=1.5cm"
+---
+```{r, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(dev = "CairoPDF")
+require(ggplot2)
+
+```
+
+
+# 测试excel
+
+```{r}
+library(openxlsx)
+xlsxFile <- system.file("test/feb-data2.xlsx", package = "openxlsx")
+dfx <- read.xlsx(xlsxFile = "test/feb-data2.xlsx", sheet = "sheet1")
+```
+
+
+
+
+
+
+**Krup测试文档**
+
+测试$\sqrt{1.5\times 0.96}=\sqrt{1.44}=1.2$测试.
+
+```{r}
+x <- seq(1,4*pi,length = 100)
+qplot(x = x, y = sin(x)) +
+  geom_vline(xintercept = pi)
+```
+
+
+```{r}
+ggplot(head(diamonds,500)) + 
+  geom_bar(aes(x = factor(1), fill = cut),width = 1) +
+  coord_polar(theta = "y")
+```
+
+
+# 中文测试
+```{r}
+ggplot(data = head(diamonds, 50)) +
+  geom_line(aes(x = x, y = y, colour="blue")) +
+  #geom_smooth(method = lm, aes(x = x, y = y, fill = cut, colour = cut)) +
+  ggtitle("正标题", subtitle = "子标题测试") +
+  xlab("X label中文") +
+  ylab("Y label中文") +
+  # 对theme做个性化处理
+  theme( # 标题字体位置调整
+    text = element_text(family = "GB1"),
+    plot.title = element_text(
+      colour = "blue",
+      size = 18  # 默认单位为pt
+      #family = "yahei"
+    ),
+    plot.subtitle = element_text(
+      hjust = 0.9, 
+      colour = "darkgreen",
+      size = 18),
+    axis.title.x = element_text(
+      size = 18,
+      family = "arial"
+    ),
+    axis.title.y = element_text(
+      family = "Microsoft YaHei UI",
+      size = 18,
+      angle = 0    # 默认为90度，设为0度水平摆放
+    )
+  )# end theme
+
+```
+
+
+```{r}
+ggplot(data = head(diamonds, 50), aes(x = x, y = y)) +
+  # 做散点图，不同cut上不同颜色
+  geom_point(aes(colour = cut)) +
+  # 添加平滑曲线
+  geom_smooth(method ="lm") +
+  # 修改colour=cut图例的标题和颜色范围
+  # cut为非数值连续型,因此使用discrete
+  scale_colour_discrete(name = "Legend Title") +
+  # 添加柱状图，修改aes的x、y和同级转换stat为identity
+  geom_bar(aes(x = x, y=z, fill = color), stat = "identity") +
+  geom_line(aes(x = x, y = z), stat = "identity") +
+  ggtitle("正标题", subtitle = "子标题测试") +
+  xlab("X label") +
+  ylab("Y label") +
+  # 对theme做个性化处理
+  theme( # 标题字体位置调整
+    text = element_text(family = "SIMSUN"),
+    plot.title = element_text(
+      vjust = 0.5,
+      hjust = 0.5,
+      angle = 30,
+      colour = "blue",
+      size = 18,  # 默认单位为pt
+      family = "SIMHEI",
+      face = "bold.italic"
+    ),
+    plot.subtitle = element_text(family = "SIMSUN",hjust = 0.9, colour = "darkgreen"),
+    axis.title.x = element_text(
+      family = "SIMSUN",
+      vjust = 0.7,
+      hjust = 0.5,
+      angle = 300
+    ),
+    axis.title.y = element_text(
+      family = "SIMSUN",
+      vjust = 0.7, # 垂直位置，从下至上0-1
+      hjust = 0.5, # 水平位置，从左到右0-1
+      angle = 0    # 默认为90度，设为0度水平摆放
+    ),
+    legend.position = "right"   # right, bottom, top, left
+  )# end theme
+```
+
+
+

@@ -1,0 +1,716 @@
+---
+title: "我的R语言学习笔记20170905笔记本"
+author:
+  - Heaven Zone
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+classoption: "hyperref,"
+geometry: "left=1.5cm,right=1.0cm,top=1.5cm,bottom=1.0cm"
+---
+
+
+# 第一章 简介
+
+- 查看R语言版本
+
+```{r}
+sessionInfo()
+```
+
+- 获取帮助的方式
+
+```{r ,eval=F}
+?mean
+?"+"
+?"if"
+??plotting
+??"regression model"
+```
+上面命令等同于：
+
+```{r , eval=FALSE}
+help("mean")
+help("+")
+help("if")
+help.search("plotting")
+help.search("regression model")
+```
+
+- 向量赋值：
+```{r}
+a_vector <- c(1, 3, 6, 10)
+b_vector = 1:8
+a_vector
+b_vector
+```
+
+- 通过apropos重新记起定义过的变量
+
+```{r}
+apropos("vector")
+```
+除了输出包含“vector”字符的变量，还输出了包含该字符的内置函数。
+
+apropos还可以通过正则表达式来做到更精确的匹配：
+
+
+
+```{r}
+apropos("z$")   # 输出以z结尾的变量或函数
+apropos("[5-8]") # 输出包含5-8任意一个数字的变量或函数
+```
+
+通过范例来了解函数的用法：
+
+```{r, eval=FALSE}
+example(plot)
+demo()
+demo(Japanese)
+demo(plotmath) 
+```
+
+其他一些搜索帮助的方法：
+
+```{r, eval=FALSE}
+browseVignettes()
+vignette("Sweave", package="utils")
+RSiteSearch("{Bayesian regression}")
+```
+- 安装其他相关软件或包
+
+```{r, eval=FALSE}
+install.packages("installr")
+library(installr)
+require(installr)
+install.RStudio() # 下载并安装RStudio IDE
+install.Rtools() # 用Rtools来构建自己的包
+install.git() 
+```
+
+- 常用操作：
+
+Table: 常用操作
+
+| 命令 | 说明 |
+|:-:|:-:|
+| Ctrl + L | 清除命令窗口中的所有显示内容 |
+| rm(list=ls()) | 清除R工作空间的内存变量 |
+| sink("filename") | 将输出重定向到文件filename中:参数append，split |
+
+
+
+# 第二章 
+
+## 常用函数
+
+```
+sum
+median
+identical
+cos
+exp
+factorial(3)
+choose(5, 0:5)
+sqrt(2)^2 == 2
+all.equal(sqrt(2)^2, 3)
+isTRUE(all.equal(sqrt(2)^2, 3))
+rnorm
+```
+
+## 常用包
+
+- raster: freq
+
+统计频数时可用的函数有freq table ftable等
+
+
+## 变量赋值
+
+变量名可包括字母、数字、点、下划线：
+
+```
+1:5 -> a
+b <- 1:10
+c = 6:10
+a + c
+d<-3
+d< -3
+g <<- exp(exp(1)) # 定义全局变量
+assign("my_local_variable", 9^3+10^3)
+assign("my_global_variable", 12^3, globalenv()) # 定义全局变量
+# assign函数不会检查第一个参数是否是一个有效的变量名
+
+```
+
+## 数据类型
+
+使用`ls(pattern="^is",baseenv())`命令可以查看所有is开头的函数，下面列出常用的is函数。
+
+也可以使用`ls(pattern="^as\\.",baseenv())`查看所有as开头的函数。
+						
+|	类型	|	辨别函数	|	转换函数	|
+|	:-:	|	:-:	|	:-:	|
+|	numeric	|	is.numeric()	|	as.numeric()	|
+|	logical	|	is.logical()	|	as.logical()	|
+|	character	|	is.character()	|	as.character()	|
+|	NA	|	is.na()	|	as.na()	|
+|	double	|	is.double()	|	as.double()	|
+|	complex	|	is.complex()	|	as.complex()	|
+|	integer	|	is.integer()	|	as.integer()	|
+Table:__**数据类型的辨别和转换函数**__
+
+```{r}
+x <- c(1, 2, 3, NA)
+is.na(x)
+
+x1 <- c(1,2,3)
+is.numeric(x1)
+
+x2 <- as.character(x1)
+is.character(x2)
+```
+
+
+## 日期变量
+
+|	函数	|	功能	|	函数	|	功能	|
+|	:-:	|	:-:	|	:-:	|	:-:	|
+|	Sys.Date()	|	返回系统当前日期	|	as.POSIXlt	|	将字符串转化为包含时间和时区的日期变量	|
+|	Sys.time()	|	返回日期和时间	|	strptime()	|	将字符串变量转为包含时间的日期变量	|
+|	date()	|	日期和时间（字符串）	|	strftime()	|	将日期变量转成指定格式的字符型变量	|
+|	as.Date()	|	将字符串日期值转为日期变量	|	format()	|	将日期变量转成指定格式的字符串	|
+Table:**日期变量常用函数**	
+
+- as.Date(x, format="", ...)
+
+
+											
+												
+												
+Table:**读入日期的格式**												
+												
+|	符号	|	含义	|	示例	|	符号	|	含义	|	示例	|
+|	:-:	|	:-:	|	:-:	|	:-:	|	:-:	|	:-:	|
+|	%d	|	数字表示日期（00-31）	|	01~31	|	%y	|	两位数的年份	|	16	|
+|	%a	|	缩写的英文星期	|	Mon	|	%Y	|	四位数年份	|	2016	|
+|	%A	|	完整英文星期	|	Monday	|	%H	|	24小时制小时	|	00~23	|
+|	%w	|	数字表示星期0-6	|	0~6,周日为0	|	%I	|	12小时制小时	|	01~12	|
+|	%m	|	数字表示月份00-12	|	00~12	|	%p	|	AM/PM指示	|	AM/PM	|
+|	%b	|	英文缩写月份	|	Jan	|	%M	|	十进制的分钟	|	00~60	|
+|	%B	|	完整英文月份	|	January	|	%S	|	十进制的秒	|	00~60	|
+
+
+
+```{r}
+dates <- c("06/09/2017", "1/9/2017")
+dates
+(date <- as.Date(dates, "%d/%m/%Y"))
+d1 <- c("2016-02-18 10:07:33", "2017-09-05 14:51:30")
+class(d1)
+is.character(d1)
+d2 <- as.POSIXlt(d1, tz="", "%Y-%m-%d %H:%M:%S")
+# tz指定转换后的时区，""表示当前时区
+class(d2)
+
+# 字符型日期变量转化成时间变量
+d3 <- strptime(d1, format="%Y-%m-%d %H:%M:%S")
+d3
+class(d3)
+# 将时间变量转化成字符型日期值
+d4 <- strftime(d3, "%y年%m月%日")
+d4
+class(d4)
+```
+
+- format(x, ...)
+
+format不限于将日期转成字符型变量，还可以将其他类型的变量转化成字符型变量
+
+```{r}
+d1 <- "2017-02-02 10:07:52 CST"
+d1
+class(d1)
+# format(d1, "%Y-%m-%d")
+## Error in format.default(d1, "%Y-%m-%d") : invalid 'trim'  argument
+
+d2 <- as.POSIXlt(d1)
+d2
+class(d2)
+format(d2, "%Y-%m-%d")
+
+d3 <- as.Date(d1)
+d3
+class(d3)
+format(d3, "%Y-%m-%d")
+
+```
+
+
+## 检查变量
+
+三个查看对象类型的函数分别是`mode()`、`class()`、`typeof()`。
+
+例子：
+
+```{r}
+df <- data.frame(c1 = letters[1:3], c2 = 1:3, c3=c(1,-1,3), stringsAsFactors = FALSE)
+sapply(df, mode)
+sapply(df,class)
+sapply(df,typeof)
+
+```
+
+从上面可以看出，输出细节方面来讲，typeof > class > typeof。
+
+```{r}
+# print函数
+ulams_spiral <- c(1, 8, 7, 6, 5)
+# 下面这句不输出i
+for(i in ulams_spiral) i
+# 下面这行调用print可以输出i
+for(i in ulams_spiral) print(i)
+
+
+# summary 对不同函数类型汇总数据不同
+##　数值型
+num <- runif(30)
+summary(num)
+## 因子
+fac <- factor(sample(letters[1:5], 30, replace = TRUE))
+fac
+summary(fac)
+## 逻辑类型
+bool <- sample(c(TRUE, FALSE, NA), 30, replace = TRUE)
+summary(bool)
+## 不同列不同类型的数据框
+dfr <- data.frame(num, fac, bool)
+summary(dfr)
+# str显示对象的结构
+str(dfr)
+# unclass函数
+# unclass查看因子fac发现有一个levels的属性
+unclass(fac)
+# attributes函数
+attributes(fac)
+# 
+########################【几个可能会用到的函数】#################
+#
+# > View(dfr)  # View函数通过电子表格显示数据
+# > edit(dfr)  # 修改dfr但不保存在dfr
+# > fix(dfr)   # 修改dfr，并保存在dfr
+# > View(head(dfr,20))
+
+# 返回符合条件的元素的序号
+which(num>0.8)
+which.max(num)
+which.min(num)
+```
+
+```{r}
+# 查看变量
+ls(pattern = "a")
+ls.str(dfr)    # ls和str函数的结合
+browseEnv()    # html格式输出变量
+rm(x, a1)      # 删除变量
+# rm(list = ls())   # 删除所有变量，谨慎使用
+
+```
+
+## 数据结构
+
+数据结构包括向量、矩阵、数组、数据框、因子。
+
+### 向量vector
+
+向量可以是数值型、字符型、逻辑值型、复数型。
+
+同一个向量**不能**包含不同类型的数据。
+
+```{r ,eval=FALSE}
+x1 <- c(1, 2, 3, 4)
+x2 <- c("a", "b", "c", "d")
+x3 <- c(TRUE, FALSE, T, F, 0, 1)
+x3
+x4 <- c(TRUE, FALSE, T, F, 0, 1, "1")
+x4
+```
+
+
+
+
+
+- 一些常用的向量操作
+
+```{r ,eval=FALSE, highlight=TRUE}
+vector <- (1, 2, 3, 4)
+vector[1]
+vector[c(1:3)]
+vector[-1]
+vector[-c(1:3)]
+vector[c(TRUE,TRUE,FALSE,FALSE)]
+
+#按名称索引
+names(vector) <- c("one", "two", "three", "four")
+vector[c("one","four")]
+
+# which方式索引（返回元素的位置）
+which(vector==1)
+which(vectorc(1,2))
+which(vector!=1)
+which(vector>2 & vector<4)
+which.max(vector)
+which.min(vector)
+
+# subset方式索引
+subset(vector, vector>5 & vector<8)
+```
+
+```{r}
+# match方式索引
+# **返回向量中的元素在match第二个参数中的位置**
+vector <- c(6, 5, 7, 8, 9)
+match(vector, c(6, 7, 8))
+match(vector, c(7, 6, 5)) 
+
+# %in% 方式索引
+# 如果在向量中返回TRUE，不存在返回FALSE
+c(1, 5, 8)%in%vector
+```
+
+- 向量的编辑增减
+
+```{r ,eval=FALSE}
+# 向量中元素的增减
+v <- c(1, 2, 3, 4)
+v <- c(v, c(5, 6, 7, 8))
+v <- v[-1]
+v <- v[c(3:5)]
+v <- v[-c(2:3)]
+
+```
+
+**混合使用正负值是不允许的`x[c(1, -1)]`，这回出错。**
+
+
+
+- 向量排序
+
+sort(vector, decreasing = FALSE, na.last = NA, ...)
+
+```{r , eval=FALSE}
+# 创建3个无序向量
+v1 <- c(1, 3, 2, 4, 6, 5, 7, 8)
+v2 <- c("B", "A", "D", "C")
+v3 <- c(1, 3, 2, NA, 5, 4)
+sort(v1)
+sort(v2, decreasing = TRUE)
+sort(v3, decreasing = FALSE, na.last = FALSE)
+sort(v3, decreasing = TRUE, na.last = FALSE)
+sort(v3, decreasing = TRUE, na.last = TRUE)
+sort(v3, decreasing = FALSE)
+sort(v3, decreasing = TRUE)
+```
+
+由上面可见，sort函数对于参数`na.last`有出现三种情况：
+
+1. `na.last = TRUE` -> 元素NA会放置在最后
+2. `na.last = FALSE` -> 元素NA会放置在最前面
+3. 不设置na.last参数的时候，不返回NA元素
+
+
+- 创建等差数列
+
+使用函数seq()函数创建等距间隔的数列。
+
+`seq(from=1, to=10, by=((to-from)/(length.out-1)), length.out=NULL, along.with=NULL, ...)`
+
+1. from -> 等差数列的第一项数据，默认为1
+2. to -> 等差数列最后一个数据，默认为1
+3. by -> 等差的数值，即间隔
+4. length.out -> 产生序列的长度，一共多少个元素
+
+上面四个参数全部都输的话会提示参数太多。
+
+```
+> x = seq(1,6,by=2)
+> x
+[1] 1 3 5
+
+> x = seq(1,by=2,length.out = 10)
+> x
+ [1]  1  3  5  7  9 11 13 15 17 19
+ 
+> (x = seq(1,by=2,length.out = 10))
+ [1]  1  3  5  7  9 11 13 15 17 19
+ 
+> (x = seq(1,by=2,length.out = 9))
+[1]  1  3  5  7  9 11 13 15 17
+
+> (x = seq(1,by=2,length.out = 5))
+[1] 1 3 5 7 9
+
+> (x = seq(to = 5,by=2,length.out = 5))
+[1] -3 -1  1  3  5
+
+> seq(1,,3,4)
+[1]  1  4  7 10
+```
+
+
+- seq_along()函数
+
+```{r}
+pp <- c("Perter", "Piper", "picked", "a", "peck", "of", "pickled", "pepers")
+for(i in seq_along(pp)) print(pp[i])
+```
+
+
+
+- rep()重复序列的创建
+
+rep(x, times = 1, length.out = NA, each = 1)
+
+下面举个列子，`x=5:6,times=2,length.out=10,each=3`
+
+```{r}
+rep(x=5:6,times=2,length.out=10,each=3)
+rep(5:6, 2, 10, 3)
+rep(4:6,each=2,times=3)
+rep(as.factor(c("因子1", "因子2", "因子3")), ,5,2)
+```
+
+
+
+### 矩阵matrix
+
+###### 创建矩阵
+matrix(data=NA, nrow=1, ncol=1, byrow=FALSE, dimnames=NULL)
+
+- byrow默认为FALSE，默认以列的形式填充。
+
+```{r}
+(m1 <- matrix(c(1:5,11:18), 5, 3,byrow=FALSE,
+      dimnames=list(c("r1","r2","r3","r4","r5"),c("c1","c2","c3"))))
+
+dim(m1)
+
+(m2 <- matrix(1:10, ncol=2, nrow=5, byrow=TRUE))
+class(m2)
+```
+
+
+###### 矩阵转化为向量
+
+**当矩阵转化为向量时，元素按列读取。**
+
+```{r}
+(m1 <- matrix(1:10, 2, 5, byrow=TRUE))
+(v1 <- as.vector(m1))
+
+```
+
+###### 矩阵索引
+
+m[行, 列]
+
+```
+m1 <- matrix(c(1:5,10:25),nrow = 5, ncol=3, byrow=FALSE,
+dimnames=list(c("r1","r2","r3","r4","r5"),c("c1","c2","c3")))
+
+> m1[2,1]
+[1] 2
+
+> m1["r3","c2"]
+[1] 12
+
+> m1[1,]
+c1 c2 c3 
+ 1 10 15 
+ 
+> m1[,2]
+r1 r2 r3 r4 r5 
+10 11 12 13 14 
+
+> m1[c(1,3,5),c("c1","c3")]
+   c1 c3
+r1  1 15
+r3  3 17
+r5  5 19
+
+```
+
+###### 矩阵的运算
+
+
+Table:**矩阵常用运算函数**
+
+|	函数	|	功能	|
+|	:-:	|	:-:	|
+|	+-*/	|	四则运算，维数相同，对应位置运算	|
+|	colSums()	|	列求和	|
+|	rowSums()	|	行求和	|
+|	colMeans()	|	列求平均值	|
+|	rowMeans()	|	行求平均值	|
+|	t()	|	行列置换	|
+|	det()	|	求解方阵的行列式	|
+|	crossprod()	|	求两个矩阵的内积	|
+|	outer()	|	矩阵外积（叉积），等同于%o%	|
+|	%*%	|	矩阵乘法，第一矩阵列数与第二矩阵行数相等	|
+|	diag()	|	取矩阵对角线元素（另：若为向量，则生成以向量为对角线的矩阵）	|
+|	solve()	|	求解逆矩阵，要求矩阵可逆,正方形矩阵	|
+|	eigen()	|	求解特征值和特征向量，要求正方形矩阵	|
+
+
+```{r matrix, results="markup"}
+a <- matrix(1:4,2,2)
+b <- matrix(8:5,2,2)
+
+(a*b+b-a)/2
+rowSums(a)
+a
+t(a)
+a*b
+
+```
+
+```{r}
+a <- matrix(1:4,2,2)
+b <- matrix(1:6,2,3)
+# a的列数等于b的行数时可以相乘
+# c的行数=a的行数，c的列数=b的列数
+(c <- a%*%b)
+# 矩阵乘法一般不满足交换律
+# b需要置换后才能乘以a
+(c <- t(b)%*%a)
+# crossprod(b,a)等价于t(b)%*%a
+crossprod(b,a)
+outer(b,a)   # 分别用a中的元素乘以b，返回数组
+class(outer(b,a))
+```
+
+- 矩阵其他一些函数
+
+```{r}
+(a <- matrix(c(1,0,1,5,-3,1,2,4,7),3,3))
+(inverse_a <- solve(a))
+a %*% inverse_a
+diag(a)
+eigen(a)
+```
+
+
+### 数组array
+
+array(data=NA, dim=length(data), dimnames=NULL)
+
+1. dim维数，例dim=c(3,5,2)
+2. dimnames，可选参数，各维度的名称
+
+```{r}
+a <- c(1:30)
+dim1 <- c("a1", "a2", "a3")
+dim2 <- c("b1", "b2", "b3", "b4", "b5")
+dim3 <- c("c1", "c2")
+
+(a <- array(a, dim=c(3,5,2), dimnames=list(dim1,dim2,dim3)))
+
+# 数组的索引
+# a[行，列，组]
+a[2,3,1]
+a["a3", "b4", "c2"]
+class(a[,,2])
+```
+
+### 关于矩阵和数组的其他一些情况
+
+```{r}
+arr <- c(1:30)
+dim1 <- c("a1", "a2", "a3")
+dim2 <- c("b1", "b2", "b3", "b4", "b5")
+dim3 <- c("c1", "c2")
+arr <- array(a, dim=c(3,5,2), dimnames=list(dim1,dim2,dim3))
+dim(arr)
+nrow(arr)  # 返回数组或者matrix的第一维度
+ncol(arr)  # 返回数组或者matrix的第二维度
+dim(arr)[3]  # 返回数组的第三维度
+length(arr)  # 返回数组或者matrix所有维度的乘积
+# 重塑数组或者matrix的维度（会删除原维度名称）
+# 元素总个数必须跟原来的数量一致
+dim(arr) <- c(2,5,3)  
+
+
+# NROW与NCOL，把向量当成单个列的矩阵
+rec <- seq(1,10,2)
+nrow(rec)
+NROW(rec)
+ncol(rec)
+NCOL(rec)
+
+# 修改维度名称
+rownames(arr) <- c("row1","row2")
+arr
+colnames(arr)
+dimnames(arr)
+
+```
+
+
+### 数据框dataframe
+
+数据框是二维数据，索引方式主要有：
+
+1. 通过$符号进行列索引
+2. 通过subset函数进行条件索引
+3，通过sqldf包的sqldf()函数使用sql语句索引
+
+```{r}
+# 生成dataframe
+df <- data.frame(c1=c(1:4),c2=c("a","b","c","d"))
+# 列索引
+df$c1
+df[,2]
+df["c2"]
+df["c2"][1]
+
+# 行索引
+```
+
+
+### 因子factor
+
+
+
+# 其他收集
+
+### 公式问题
+
+```
+例如$ x=y $，不要在$符号旁边加空格
+```
+
+
+### Externalize ggplot2 code
+
+You may have your own layout code like this one, and you do not want to type the code again and again. One way to avoid repeating the code explicitly is to use chunk references. Although knitr is based on the idea of literate programming, but we rarely need programming, and this is one case in which literate programming may be helpful.
+
+We simplify the layout code in the original post and put it in a code chunk named my-layout:
+
+
+```
+theme (legend.text = element_text(size = 12, angle=45))+
+  theme (legend.position = "bottom")
+Now we can use <<>> to reference it.
+
+library(ggplot2)
+qplot(carat, price, data=diamonds, color=cut)+
+  <<my-layout>>
+Another test:
+
+qplot(carat, data=diamonds, fill=cut)+
+  <<my-layout>>
+```
+

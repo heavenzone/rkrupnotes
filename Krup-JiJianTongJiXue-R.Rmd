@@ -1,0 +1,263 @@
+---
+title: "《极简统计学》的R语言实现"
+author:
+  - Heaven Zone
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+classoption: "hyperref,"
+geometry: "left=1.5cm,right=1.5cm,top=2cm,bottom=1.5cm"
+---
+
+```{r, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(dev = "CairoPDF")
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(error = FALSE)
+require(ggplot2)
+
+```
+
+# 用频数分布表和直方图刻画数据的特征
+
+## 把第11页图1-1的数据录入向量变量
+
+```{r}
+jijian.girl <- data.frame()
+
+# 为方便使用类似excel的单元格方式录入方式
+# 使用fix函数打开“数据编辑器”来录入数据
+# > fix(jijian.girl)
+load("./data/1-1-girl-height.Rdata")
+jijian.girl$height
+
+# 下面分别求出最大值、最小值和平均值
+# > max(jijian.girl$height)
+# > min(jijian.girl$height)
+# > mean(jijian.girl$height)
+
+# 制作第14页图1-2“频数分布表”
+#
+## 先求频数
+jijian.cut <- c(141,145,150,155,160,165,170)
+pinshuT <- table(cut(jijian.girl$height, breaks = jijian.cut))
+pinshu <- as.vector(pinshuT)
+
+## 计算组值
+# 算出组值，这里的组值跟书上有一点区别
+# 这是因为书上的表忽略了145-146之间的数值
+# 这里的组值取jijian.cut向量里面连续两个元素的平均值
+zuzhi <- vector(mode = "numeric")
+for(i in 1:(length(jijian.cut)-1)){
+ zuzhi[i] <- (jijian.cut[i]+jijian.cut[i+1])/2
+}
+
+## 计算频率
+pinlv <- round(pinshu/sum(pinshu),digits = 4)
+
+## 累计频数
+leijipinshu <- vector()
+leijipinshu[1] <- pinshu[1]
+for(i in 2:length(pinshu)){
+ leijipinshu[i] <- (pinshu[i]+leijipinshu[i-1])
+}
+
+## 区间
+qujian <- as.vector(dimnames(pinshuT)[[1]])
+
+jijian.df.pinshufenbubiao <- data.frame(
+  "分组" = qujian,
+  "组值" = zuzhi,
+  "频数" = pinshu,
+  "相对频数" = pinlv,
+  "累计频数" = leijipinshu
+  )
+
+## 输出频数分布表
+jijian.df.pinshufenbubiao
+
+```
+
+## 制作直方图
+
+```{r warning=FALSE}
+## 制作直方图
+mybreaks <- c(143,148,153,158,163,168)
+
+myq <- qplot(height, data = jijian.girl, geom="histogram", 
+      binwidth = 5,
+      center = 148,
+      main = "女大学生身高直方图",
+      ylab = "频数",
+      xlab = "组值（单位：cm）"
+      )
+myq <- myq + scale_x_continuous(
+  breaks = mybreaks,
+  name = "组值",
+  labels = paste(mybreaks, "cm", sep = "")
+  )
+myq <- myq + theme_grey()
+myq <- myq + theme(
+  text = element_text(family="SIMHEI",size=14),
+  plot.title = element_text(hjust = 0.5)
+  )
+myq
+
+myhist <- ggplot(jijian.girl, aes(x = height)) + ggtitle("女大学生身高直方图")
+myhist <- myhist + theme(plot.title = element_text(hjust = 0.5))
+myhist <- myhist + geom_histogram(binwidth = 5, center = 143) 
+myhist <- myhist + scale_y_continuous(name = "频数")
+myhist <- myhist + scale_x_continuous(
+  breaks = mybreaks,
+  name = "组值",
+  labels = paste(mybreaks, "cm", sep = "")
+  )
+myhist <- myhist + theme_grey()
+myhist <- myhist + theme(
+  text=element_text(family="SIMHEI",size=14),
+  plot.title = element_text(hjust = 0.5)
+  )
+myhist
+
+```
+
+
+
+# 平均值是挑担人偶玩具的支点
+
+## 一般求平均值的方法
+
+书本第20页：
+
+- 一般计算平均值方法mean()函数
+
+求平均值`mean(jijian.girl$height)`结果是`157.575`。
+
+- 频数分布表上的平均值
+
+频数分布表上的平均值的公式：求和（组值×相对频数）=平均值
+
+```{r}
+tmp<-jijian.df.pinshufenbubiao$组值*jijian.df.pinshufenbubiao$相对频数
+
+jijian.df.pinshufenbubiao$ab <- tmp
+sum(jijian.df.pinshufenbubiao$ab)
+
+# 生成如书中第20页的表格
+jijian.df.pinshufenbubiao[c("组值","相对频数","ab")]
+```
+
+
+由上面两种方式算出来的平均值并不完全相等，这是因为组值并不是处于该组区间的数值的平均值，因此算出来有点出入，但是并不多，书中讲这个方法算的平均值在整个统计学中都能用到，好好记住。因为我上面取的组值跟书中有点不一样，所以算出来的值跟书中也不一样。
+
+
+## 取平均值的方法不止一个
+
+书中p25介绍了下面几种平均值，例如取x和y的平均值：
+
+1. 算术平均值
+
+$$\text{算术平均值}=\frac{(x+y)}{2}$$
+
+2. 几何平均数
+
+$$\text{几何平均数}=\sqrt{xy}$$
+
+应用：某企业第1年销售额为1，第二年销售额增长50%，第三年减少了4%，
+相当于是，第二年销售额是1年的1.5倍，第三年是第1年的0.96倍，根据几何平均数公式$\sqrt{1.5\times0.96}=\sqrt{1.44}=1.2$计算出来结果是`1.2`，即平均下来，第二年的销售额是第一年的1.2倍，第三年的销售额是第二年的1.2倍，所以平均增长率是$1.2-1=20\%$。
+
+验证结果：$1\times(1+20\%)^2=1.44$和$1\times(1+50\%)\times(1-4\%)=1.44$结果一致。
+
+几何平均数在求“成长率”平均数的时候经常使用。
+
+3. 均方根值
+
+$$\text{均方根值} = \sqrt{\frac{(x^2+y^2)}{2}}$$
+
+这个公式跟后面的标准差公式，x、y分别指的是偏差。
+
+4. 调和平均数
+
+$$\text{调和平均数} = \frac{2}{\frac{1}{x}+\frac{1}{y}}$$
+
+应用：去程时速为x，返程时速为y，求平均速度？
+
+设单程路程为1，去程返程时间分别是$\frac{1}{x}$和$\frac{1}{y}$，来回一共用的时间是$\frac{1}{x}+\frac{1}{y}$，平均时速就是：$\frac{2}{\frac{1}{x}+\frac{1}{y}}$，与上面公式一致。
+
+
+
+
+# 有数据分散程度估计统计量——方差和标准差
+
+
+```{r}
+# 书中图3-1数据录入向量变量
+jijian.gongjiao <- c(32, 27, 29, 34, 33)
+
+# 平均值
+mean(jijian.gongjiao)
+
+# 图3-2，计算偏差
+jijian.piancha <- jijian.gongjiao - mean(jijian.gongjiao)
+jijian.piancha
+
+# 合计偏差为0
+sum(jijian.piancha)
+
+# 根据书中第32页公式计算方差和标准差
+(jijian.fangcha <- sum(jijian.piancha^2)/length(jijian.piancha))
+(jijian.biaozhuncha <- sqrt(jijian.fangcha))
+
+# 下面再使用R语言的var方差函数和sd标准差函数计算
+# 发现结果跟书中计出来的结果不一行
+# 原来书中方差公式除以的是5，而var函数是除以n-1
+# 这里应该是自由度选择不同导致结果不同吧
+var(jijian.piancha)
+sd(jijian.piancha)
+```
+
+具体什么叫自由度可以阅读[知乎这里](https://www.zhihu.com/question/20099757)
+
+> 是为了得到无偏估计。
+但是在现代统计学里，无偏估计不重要，最小化risk，比如minmax estimator更有意义。
+对于方差的例子，加一减一没啥区别。数据量够大时大家一样，数据量小时，做统计分析也没啥意义，Larry Wasserman原话。
+
+上面由于数据量只有几个，所以差别有点大。
+
+虽然上面有两个结果，但是表述的意义基本是相同的，根据书中：
+
+> 衡量公交车到达时刻的波动，时间的不均一、不确定的是标准差，这里约为2.6分钟。
+
+
+# 这个数据是“平常”还是“特殊”
+
+- 如果以标准差测量在$\pm 1$个标准差，可以说这是“平常的数据”
+- 如果数据偏差在$\pm 2$个标准差外侧，可以说这是“特殊的数据”
+- 距平均值$\pm 1$个SD范围的数据占$70 \%$
+- 在$\pm 2$个SD两侧的数据加起来占$5 \%$
+
+```{r}
+plot_area <- function(min,max){
+  function(x){
+    y <- dnorm(x)
+    y[x<min | x>max] <-NA
+    return(y)
+  }
+}
+
+library(latex2exp)
+ggplot(data.frame(x=c(-4,4)), aes(x=x)) +
+  theme_grey() +
+  stat_function(fun=plot_area(-Inf, -2), geom="area", fill="red", alpha=0.2) +  
+  stat_function(fun=plot_area(2, Inf), geom="area", fill="red", alpha=0.2) +
+  stat_function(fun=plot_area(-1, 1), geom="area", fill="#ffccdd", alpha=0.2) +
+  stat_function(fun=dnorm) +
+  geom_text(aes(y=0.2, x=0), label="70",parse = TRUE) +
+  geom_text(aes(y=0.025, x=-2),label="2.5%") +
+  geom_text(aes(y=0.025, x=2),label="2.5%")
+
+```
+

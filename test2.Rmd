@@ -1,0 +1,35 @@
+---
+title: "TEST测试2"
+author:
+  - Heaven Zone
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+classoption: "hyperref,"
+geometry: "left=1.5cm,right=1.5cm,top=2cm,bottom=1.5cm"
+---
+
+
+---
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(dev = "CairoPDF")
+require(ggplot2)
+
+```
+
+
+# 测试
+
+```{r}
+dat <- data.frame(x = c(19,23,21,13,21,24,27,20,20,18,19,15,22,25,27,22),A=gl(4,4))
+aov.dat <- aov(x~A, data = dat)
+
+```
+
+
+
