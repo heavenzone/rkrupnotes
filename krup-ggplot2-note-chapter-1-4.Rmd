@@ -1,0 +1,615 @@
+---
+title: "ggplot2的笔记"
+author:
+  - Heaven Zone
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+classoption: "hyperref,"
+---
+```{r, echo = FALSE}
+knitr::opts_chunk$set(fig.height = 2, tidy=TRUE, warning=TRUE)
+```
+
+# 从qplot()开始入门
+
+## 基本用法
+
+```{r}
+require(ggplot2)
+set.seed(1410)
+data(diamonds)
+
+dsmall <- diamonds[sample(nrow(diamonds),100),]
+
+qplot(carat, price, data = diamonds)
+
+qplot(log(carat), log(price), data=diamonds)
+
+qplot(carat, x*y*z, data=diamonds)
+```
+
+
+钻石的密度应该是一个常数，密度=carat/(x\*y\*z)，大部分钻石落在直线上，但是还是有不少的异常点。
+
+
+## 颜色、大小、形状和其他图形属性
+
+```{r}
+# 对dsmall$color字段分组随机分配不同的颜色
+qplot(carat, price, data = dsmall, colour = color)
+# 对dsmall$cut字段分组随机分配不同的形状显示
+qplot(carat, price, data = dsmall, shape = cut)
+# 用半透明色显示散点图
+# 下面命令表示100个点重合在一起就完全不透明
+# alpha取值从0（完全透明）到1（完全不透明）
+qplot(carat, price, data = diamonds, alpha = I(1/100))
+```
+
+
+
+## 几何对象
+
+几何对象：geom，几何对象描述了应该用何种对象来对数据进行展示，其中有些几何对象关联了**统计变换**。
+
+几何对象有**直方图**、**箱线图**等等。
+
+### 添加平滑曲线
+
+```{r, warning=FALSE}
+# 样本< 1000 时，method默认使用loess
+qplot(carat, price, data = dsmall, geom = c("point", "smooth"))
+
+# loess对于大数据不适用（内存消耗是O(n^2)）
+# 由图可见，gam比loess的曲线更直
+qplot(carat, price, data = dsmall, geom = c("point", "smooth"), method = "gam")
+
+# 样本 > 1000 时，method默认使用gam
+qplot(carat, price, data = diamonds, geom = c("point", "smooth"))
+
+# se = FALSE 不绘制标准误
+qplot(carat, price, data = dsmall, geom = c("point", "smooth"), se = FALSE)
+
+# span是平滑程度参数，0表示很不平滑，1表示很平滑
+qplot(carat, price, data = dsmall, geom = c("point", "smooth"), span = 0.5)
+
+# 使用gam方式，formula=y~s(x)来调用mgcv包你和一个广义可加模型
+# 对于大数据，请使用formula = y~s(x, bs = "cs")，这也是数据1000时的默认选项
+
+require(mgcv)
+qplot(carat, price, data = dsmall, geom=c("point", "smooth"), 
+      method = "gam", formula = y ~ s(x))
+
+qplot(carat, price, data = dsmall, geom=c("point", "smooth"),
+      method = "gam", formula = y ~ s(x, bs = "cs"))
+
+
+# splines包使用自然样条：formula = y ~ ns(x, 2)，第二个参数是自由度
+# 自由度越大，曲线波动越大
+require(splines)
+qplot(carat, price, data = dsmall, geom=c("point", "smooth"),
+      method="lm")
+
+qplot(carat, price, data = dsmall, geom=c("point", "smooth"),
+      method="lm", formula = y ~ ns(x, 5))
+
+# 使用method = "rlm"，与lm类似，但采用了更稳健的拟合算法
+# 是结果对异常值不敏感，需要先调用MASS包
+require(MASS)
+qplot(carat, price, data= dsmall, geom = c("point", "smooth"), 
+      method = "rlm")
+```
+
+
+### 箱线图和扰动点图
+
+- 扰动点图geom = "jitter"
+- 箱线图geom = "boxplot"
+
+```{r}
+
+qplot(color, price / carat, data = diamonds, geom = "jitter", 
+      alpha = I(1/10), colour = cut)
+
+qplot(color, price / carat, data = diamonds, geom = "boxplot")
+```
+
+
+- 上面两种图都显示出每克拉价格的跨度与颜色是相关的
+- 箱线图：显示出分布的中位数和四分位数没有太大变化
+- 扰动点图：通过半透明颜色，可以更清楚看出数据集中的地方
+
+
+### 直方图和密度曲线图
+
+直方图和密度曲线图可以显示的那个变量的分布
+
+```{r}
+qplot(carat, data = diamonds, geom = "histogram")
+
+# adjust参数控制密度曲线的平滑程度，默认值为1
+qplot(carat, data = diamonds, geom = "density", adjust = 1)
+
+# 通过不同binwidth调整组距对平滑度进行试验非常重要
+# binwidth越大，越能体现整体特征
+# binwidth越小，更能体现细节
+# xlim设置x轴的范围
+qplot(carat, data = diamonds, geom = "histogram",
+      binwidth = 1, xlim = c(0, 3))
+
+qplot(carat, data = diamonds, geom = "histogram",
+      binwidth = 0.1, xlim = c(0, 3))
+
+# 以不同颜色填充柱状条
+qplot(carat, data = diamonds, geom = "histogram", fill = color)
+
+# 根据不同diamonds$color绘制密度曲线
+qplot(carat, data = diamonds, geom = "density", colour = color)
+```
+
+
+###　时间序列中的线条图和路径图
+
+
+- 线条图的x轴一般是时间，描述单个变量随时间变化的规律
+- 路径图展示两个变量随时间联动的情况，反映在点顺序上
+
+```{r}
+# 这次用到数据集economics
+# 下图显示了失业率的变化
+qplot(date, unemploy / pop, data = economics, geom = "line")
+
+# 下图是失业星期数的中位数
+qplot(date, uempmed, data = economics, geom = "line")
+
+year <- function(x) as.POSIXlt(x)$year + 1900
+qplot(unemploy / pop, uempmed, data = economics,
+      geom = c("point", "path"))
+# 通过不同深浅的颜色表示不同年份
+# 由图可看出失业率和失业时间长度是高度相关的
+qplot(unemploy / pop, uempmed, data = economics,
+      geom = "path", colour = year(date))
+
+```
+
+## 分面facets
+
+前面已经讨论了用图形属性，例如颜色、形状，来比较不同分组的方法，这是绘制在同一张图片上的，而**分面facets**是通过分组绘制在不同图片上。
+
+- 分面图的行列数量通过row_var ~ col_var来指定。
+- 如果只想指定一行或一列，可以使用`.`来作为占位符，例如`row_var ~ .`。这回绘制一个单列多行的图形矩阵。
+
+```{r}
+qplot(carat, data = diamonds, facets = color ~ .,
+      geom="histogram", binwidth = 0.1, xlim = c(0,3))
+
+# ..density..告诉ggplot2将密度而不是频数映射到y轴
+qplot(carat, ..density.., data = diamonds, facets = color ~ .,
+      geom = "histogram", binwidth = 0.1, xlim = c(0, 3))
+```
+
+
+## 其他一些选项
+
+- xlim, ylim：设置x、y轴的显示区间，xlim=c(0,3)，ylim=c(10,20)
+- log：取对数，log="x"，表示对x轴取对数，log="xy"表示对x轴y轴取对数
+- main：设置主标题，`main=expression(beta[1]==1)`。
+- xlab, ylab：设置x轴y轴的标签名字
+
+```{r}
+qplot(
+  carat, price, data=dsmall,
+  xlab = "Price($)", ylab = "Weight(carats)",
+  main = "Price-weight relationship"
+)
+
+qplot(
+  carat, price / carat, data = dsmall,
+  ylab = expression(frac(price, carat)),
+  xlab = "Weight (carats)",
+  main = "Small diamonds",
+  xlim = c(.2, 1)
+)
+
+qplot(carat, price, data = dsmall, log="xy")
+
+```
+
+## qplot与plot函数的区别
+
+- qplot不是泛型函数，当你将不同类型的R对象传入qplot，他并不会匹配默认的函数调用。
+- ggplot()是一个泛型函数，你可以对任意R对象进行可视化操作。
+- ggplot2中的图形属性名称（colour、shape和size等）比基础绘图系统plot中的名称（col、pch和cex等）更直观
+
+
+## 语法突破
+
+```{r}
+# 发动机排量displ，单位：升
+# 高速公路耗油量hwy，单位：英里每加仑
+# cyl气缸数量
+qplot(displ, hwy, data = mpg, colour = factor(cyl))
+```
+
+- print()：在循环和函数里，需要手动输入print()
+- ggsave()：保存图形文件到磁盘
+- summary()：查看对象的结构，包括图形对象
+- save()：保存图形一个副本到R数据文件，当使用load()调用时，重现该图形，如果你在图形对象外修改了数据，然后再重新读入已经保存的图形对象，图像不会更新。
+
+```{r}
+p <- qplot(displ, hwy, data = mpg, colour = factor(cyl))
+summary(p)
+
+## 保存图形对象
+save(p, file = "plot.rdata")
+## 读入图形对象
+load("plot.rdata")
+## 将图片保存成png格式
+ggsave("plot.png", width = 5, height = 5)
+
+```
+
+# ggplot：用图层构建图像
+
+一个图层有五个部分组成：
+
+- 数据，数据**必须是dataframe**
+- 一组图形属性映射aes
+- 几何对象geom
+- 统计变换stat
+- 位置调整
+
+## 创建绘图对象与图层
+
+数据，必须是数据框dataframe，映射，aes。
+
+```{r}
+# ggplot(数据框, aes(x轴, y轴, 属性 = ""))
+p <- ggplot(diamonds, aes(carat, price, colour = cut))
+
+# layer(geom = NULL, stat = NULL, data = NULL, mapping = NULL,
+#  position = NULL, params = list(), inherit.aes = TRUE,
+#  check.aes = TRUE, check.param = TRUE, subset = NULL, show.legend = NA)
+### 默认geom、stat、data、position都是NULL必须赋值才可以绘图。
+
+###############
+# 下面生成一个组距为2，铁青色的直方图
+p <- ggplot(diamonds, aes(x = carat))
+p <- p + layer(
+  geom = "bar", 
+  stat = "bin",
+  params = list(binwidth = 0.5, fill = "steelblue"),
+  position = "identity"
+  )
+p
+
+
+### 用快捷函数简化上面代码
+
+qplot(sleep_rem / sleep_total, awake, data = msleep)
+# 等价于
+ggplot(msleep, aes(sleep_rem / sleep_total, awake)) + geom_point()
+
+# 也可以为qplot添加图层
+qplot(sleep_rem / sleep_total, awake, data = msleep) + geom_smooth()
+# == 等价于
+qplot(sleep_rem / sleep_total, awake, data = msleep, geom = c("point", "smooth"))
+# == 等价于
+(p1 <- ggplot(msleep, aes(sleep_rem / sleep_total, awake)) + geom_point() + geom_smooth())
+summary(p1)
+
+
+#### 图层是普通R对象，可以储存到变量中去，重复使用，避繁就简
+require(scales)
+bestfit <- geom_smooth(method = "lm", se = F,
+                       colour = alpha("steelblue", 0.5), size = 2)
+qplot(sleep_rem, sleep_total, data = msleep) + bestfit
+qplot(awake, brainwt, data = msleep, log = "y") + bestfit
+qplot(bodywt, brainwt, data = msleep, log = "xy") + bestfit
+```
+
+
+## 数据
+
+关于数据变换问题，可以参考plyr和reshape2两个非常有用的数据包。
+
+下面展示通过%+%来添加新的数据集代替原来的数据集。
+
+```{r}
+(p3 <- ggplot(mtcars, aes(mpg, wt, oclour = cyl)) + geom_point())
+mtcars <- transform(mtcars, mpg = mpg^2)
+p3 %+% mtcars
+```
+
+
+
+
+## 图形属性映射
+
+```{r}
+a1 <- aes(x = mpg, y = wt, colour = cyl)
+
+# 也可以使用变量的函数值作为参数
+a2 <- aes(x = mpg, y = wt, colour = sqrt(cyl))
+
+p <- ggplot(mtcars, a2) + geom_point()
+p
+```
+
+
+### 图和图层、映射
+
+可通过+来修改图形属性映射
+
+```{r}
+p <- ggplot(mtcars)
+summary(p)
+
+p <- p + aes(wt, hp)
+summary(p)
+
+p + geom_point(aes(colour = factor(cyl)))
+
+# 修改图形属性
+# 修改了mapping只对图层起作用，坐标轴名称并没有因此改变
+# 修改了mapping记得修改相应的坐标轴标签
+p + geom_point(aes(y = disp))
+
+# 修改点的颜色为红色
+p + geom_point(colour = "red")
+
+# 上面跟这个是有区别的，这里是跟之前的colour=color一样，
+# 随机分配一个颜色给新变量的其中一个值”darkblue”
+p + geom_point(aes(colour = "darkblue"))
+```
+
+
+### 分组group
+
+载入nlme包，里面有一个简单的纵向数据集Oxboys，下面是一个时间序列图，每条线代表一个男孩从0岁到1岁的高度变化，为避免源数据数据量太多，图像出现太多条线，不利于观察，下面只取头50条记录进行分析，
+
+```{r, fig.width=3, warning=FALSE}
+require(nlme)
+head(Oxboys,15)
+p <- ggplot(head(Oxboys,50), aes(age, height, group = Subject)) + geom_line()
+p
+
+# 上面已经将图层储存在p变量里面，下面两个则是在p的基础上
+# 添加第二个图层，而不需要再输入第一个图层的代码
+
+# 假设我们想根据所有男孩（前50条记录）的年龄和身高在图中添加一条光滑线条
+p + geom_smooth(aes(group = Subject), method = "lm", se = F)
+
+# group = 1，这样所绘制的线条才是基于整体数据的
+p + geom_smooth(aes(group = 1), method = "lm", size = 2, se = F)
+```
+
+
+如果图像含有离散型变量，你想绘制连接所有分组的线条，那么可以采取绘制交互作用图、轮廓图、平行坐标图时所用的策略。
+
+下面没有必要设置组图形属性，因为Occasion是一个离散型变量，所以默认分组变量就是Occasion。
+
+```{r}
+# 下面箱线图描述了每个时期Occasion的各个男孩Subject的身高height分布。
+boysbox <- ggplot(Oxboys, aes(Occasion, height)) + geom_boxplot()
+boysbox
+
+# 如果想用geom_line()添加每个男孩的轨迹，需要在新图层里面
+# 设定aes(group = Subject)
+boysbox + geom_line(aes(group = Subject), colour = "#3366FF")
+
+# 如果group = 1，如下图所示，就是连接所有观测点的折线图
+boysbox + geom_line(aes(group = 1 ), colour = "red")
+```
+
+
+### 匹配图形属性和图形对象
+
+线条和路径遵循差一原则：
+- 观测点比线段数目多一
+- 第一条线段将使用第一条观测的图形属性
+- 第二条线段将使用第二条观测的图形属性
+- 如此类推。
+- 意味着最后一条观测的图形属性不会被用到
+- 每个个体的线条类型必须是一个常数
+- 因为R不能绘制不同线条类型相连接的线条
+
+
+## 几何对象
+
+ggplot2中的几何对象
+
+Table: ggplot2中的几何对象
+
+|	名称	|	描述	|	统计变换	|	图形属性	|
+|:-:|:-:|:-:|:-:|
+|	abline	|	线，斜率、截距	|	abline	|	colour,linetype,size	|
+|	area	|	面积图	|	area	|	colour,fill,linetype,size,x,y	|
+|	bar	|	条形图，x轴为底	|	bar	|	colour,fill,linetype,size,weight,x	|
+|	bin2d	|	二维热图	|	bin2d	|	colour,fill,linetype,size,weight,xmax,xmin,ymax,ymin	|
+|	blank	|	空白，什么也不画	|	identity	|	没有	|
+|	boxplot	|	箱线图	|	boxplot	|	colour,fill,lower,middle,size,upper,weight,x,ymax,ymin	|
+|	contour	|	等高线图	|	contour	|	colour,linetype,size,weight,x,y	|
+|	crossbar	|	带水平中心线的盒子图	|	identity	|	colour,fill,linetype,size,x,y,ymax,ymin	|
+|	density	|	光华密度曲线图	|	density	|	colour,fill,linetype,size,weight,x,y	|
+|	density2d	|	二维密度等高线图	|	density2d	|	colour,fill,linetype,size,weight,x,y	|
+|	dotplot	|	点直方图	|	bindot	|	colour,fill,x,y	|
+|	errorbar	|	误差棒	|	identity	|	colour,linetype,size,width,x,ymax,ymin	|
+|	errorbarh	|	水平误差棒	|	identity	|	colour,linetype,size,width,y,ymax,ymin	|
+|	freqpoly	|	频率多边形图	|	bin	|	colour,linetype,size	|
+|	hex	|	六边形二维热图	|	binhex	|	colour,fill,size,x,y	|
+|	histogram	|	直方图	|	bin	|	colour,fill,linetype,size,weight,x	|
+|	hline	|	水平线	|	hline	|	colour,linetype,size	|
+|	jitter	|	扰动点图	|	identity	|	colour,fill,shape,size,x,y	|
+|	line	|	按x轴连接观测点	|	identity	|	colour,linetype,size,x,y	|
+|	linerange	|	代表区间的竖直线	|	identity	|	colour,linetype,size,x,ymax,ymin	|
+|	map	|	基准地图里的多边形	|	identity	|	colour,fill,linetype,size,x,y,map_id	|
+|	path	|	路径图	|	identity	|	colour,linetype,size,x,y	|
+|	point	|	散点图	|	identity	|	colour,fill,shap,size,x,y	|
+|	pointrange	|	中间带点竖直线代表区间	|	identity	|	colour,fill,linetype,shape,size,x,y,ymax,ymin	|
+|	polygon	|	多边形	|	identity	|	colour,fill,linetype,size,x,y	|
+|	quantile	|	添加分位数回归线	|	quantile	|	colour,linetype,size,weight,x,y	|
+|	raster	|	高效的矩形瓦片图	|	identity	|	colour,fill,linetype,size,x,y	|
+|	rect	|	二维矩形图	|	identity	|	colour,fill,linetype,size,xmax,xmin,ymax,ymin	|
+|	ribbon	|	色带图	|	identity	|	colour,fill,linetype,size,x,ymax,ymin	|
+|	rug	|	边际地毯图	|	identity	|	colour,linetype,size	|
+|	segment	|	添加线段或箭头	|	identity	|	colour,linetype,size,x,xend,y,yend	|
+|	smooth	|	添加光滑的条件均值线	|	smooth	|	alpha,colour,fill,linetype,size,weight,x,y	|
+|	step	|	阶梯连接观测点	|	identity	|	colour,linetype,size,x,y	|
+|	text	|	文本注释	|	identity	|	angle,colour,hjust,label,size,vjust,x,y	|
+|	tile	|	瓦片图	|	identity	|	colour,fill,linetype,size,x,y	|
+|	violin	|	竖直线	|	ydensity	|	weight,colour,fill,size,linetype,x,y	|
+|	vline	|		|	vline	|	colour,linetype,size	|
+
+
+## 统计变换
+
+统计变换简称为stat，就是对数据进行统计变换，通常是以某种方式对数据信息进行汇总。
+
+例如，平滑(smoother)是一个很有用的统计变换，它能在一些限制条件的约束下计算给定x值时y的平均值。
+
+为了阐明在图形中的意义，一个统计变换必须是一个位置尺度不变量，即
+
+$$ f(x+a)=f(x)+a$$ 并且 $$ f(b*x)=b*f(x)$$，
+
+这样才能保证当改变图形的标度时，数据变换保持不变。
+
+下面列出了可用的统计变换，
+
+Table: ggplot2中的统计变换
+
+|	名称	|	描述	|
+|:-:|:-:|
+|	bin	|	计算封箱bin数据	|
+|	bin2d	|	计算矩形封箱内的观测值个数	|
+|	bindot	|	计算点直方图的封箱数据	|
+|	binhex	|	计算六边形热图的封箱数据	|
+|	boxplot	|	计算组成箱线图的各种元素值	|
+|	contour	|	三维数据的等高线	|
+|	density	|	一维密度估计	|
+|	density2d	|	二维密度估计	|
+|	function	|	添加新函数	|
+|	identity	|	不对数据进行统计变换	|
+|	qq	|	计算qq图的相关值	|
+|	quantile	|	计算连续的分位数	|
+|	smooth	|	添加光滑曲线	|
+|	spoke	|	将角度和半径转换成xend和yend	|
+|	sum	|	计算每个单一值的频数，有助解决重叠问题	|
+|	summary	|	对每个x所对应的y值做统计描述	|
+|	summary2d	|	对二维矩形封箱设定函数	|
+|	summaryhex	|	对二维六边形封箱设定函数	|
+|	unique	|	删除重复值	|
+|	ydensity	|	小提琴图，计算一维y轴方向的核密度函数估计值	|
+
+绘制直方图的stat_bin统计变换生成如下变量：
+
+- count，每个组立观测值的数目
+- density，每个组立观测值的密度（占整体的百分数/组宽）
+- x，组的中心位置
+
+下面对比一下分别用count和density来观察两种统计变换的直方图
+
+```{r}
+ggplot(diamonds, aes(carat)) + geom_histogram(bindwidth = 0.1)
+
+# 传统直方图，
+ggplot(diamonds, aes(carat)) + geom_histogram(aes(y = ..density..), binwidth = .1)
+
+# 用qplot()也可以生成同样的图像
+qplot(carat, ..density.., data = diamonds, geom = "histogram", binwidth = 0.1)
+```
+
+
+
+## 位置调整
+
+位置调整，就是对该图层中的元素位置进行微调，位置调整一般多用于离散型数据。
+
+Table: 五种位置调整参数
+
+|	名称	|	描述	|
+|:-:|:-:|
+|	dodge	|	避免重叠，并排放置	|
+|	fill	|	堆叠图形元素并将高度标准化为1	|
+|	identity	|	不走任何调整	|
+|	jitter	|	给点添加扰动避免重合	|
+|	stack	|	将图形元素堆叠起来	|
+
+
+## 整合
+
+### 结合几何对象和统计变换
+
+下面做直方图的变体：
+
+```{r}
+d <- ggplot(diamonds, aes(carat)) + xlim(0, 3)
+d + stat_bin(aes(ymax = ..count..), binwidth = .1, geom = "area")
+d + stat_bin(
+  aes(size = ..density..), binwidth = .1, 
+  geom = "point", position = "identity"
+)
+
+# 《ggplot2：数据分析与图形艺术》第63页倒数第二行
+# 书中使用的是stat_bin函数，但是并不能出图
+# 改成stat_bin2d就可以了
+d + stat_bin2d(
+  aes(y = 1, fill = ..count..), binwidth = .1,
+  geom = "tile", position = "identity"
+)
+```
+
+Table: 通过修改其他几何对象默认值得到的几何对象
+
+|	别称	|	基础几何对象	|	默认值的更改	|
+|:-:|:-:|:-:|
+|	area	|	ribbon	|	aes(min=0,max=y),position="stack"	|
+|	density	|	area	|	stat="density"	|
+|	freqpoly	|	line	|	stat="bin"	|
+|	histogram	|	bar	|	stat="bin"	|
+|	jitter	|	point	|	position="jitter"	|
+|	quantile	|	line	|	stat="quantile"	|
+|	smooth	|	ribbon	|	stat="smooth"	|
+
+
+
+
+### 显示以计算过的统计量
+
+stat_identity()
+
+### 改变图形属性和数据集
+
+ggplot2还可以将不同的数据画在同一个图的不同图层上面。
+
+```{r}
+require(nlme, quiet = TRUE, warn.conflicts =FALSE)
+model <- lme(height ~ age, data = Oxboys,
+             random = ~1 + age | Subject)
+oplot <- ggplot(Oxboys, aes(age, height, group = Subject)) +
+  geom_line()
+oplot
+
+# 下面对预测的生长轨迹和实际的生长轨迹进行对比
+
+age_grid <- seq(-1, 1, length =10)
+subjects <- unique(Oxboys$Subject)
+preds <- expand.grid(age = age_grid, Subject = subjects)
+preds$height <- predict(model, preds)
+
+# 得到预测值后，我们把它和原始数据绘制到同一张图
+# preds使用了和原始数据Oxboys相同的变量名
+# 下面只需修改默认的数据集就行，不用修改图形属性
+oplot + geom_line(data = preds, colour = "#3366FF", size = 0.4)
+```
+
+
+
+
+
+
+
+
